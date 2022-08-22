@@ -5,7 +5,7 @@ with lib; let
 
   common = {
     ENVS = attrNames statics;
-    SHENV = pkgs.callPackage ./shenv {};
+    SHENV = pkgs.callPackage ./shenv { inherit config; };
   };
 
   envVars = name: env: let
@@ -14,6 +14,7 @@ with lib; let
     "ENV_${name}_GENERATION" =
       config.specialization."shenv-${name}".configuration.home.activationPackage;
 
+    "ENV_${name}_BTRFS" = env.persist.btrfs;
     "ENV_${name}_PATH" = makeBinPath env.packages;
     "ENV_${name}_PERSIST" = maybeNull env.persist.under;
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
@@ -27,6 +28,7 @@ with lib; let
         mkdir -p $out/$ENV
         cd $out/$ENV
 
+        BTRFS="ENV_''${ENV}_BTRFS"
         GENERATION="ENV_''${ENV}_GENERATION"
         PATH_="ENV_''${ENV}_PATH"
         PERSIST="ENV_''${ENV}_PERSIST"
@@ -37,6 +39,8 @@ with lib; let
         echo "__ENV_PATH=''${!PATH_}" >>env
         echo "__ENV_PERSIST=''${!PERSIST}" >>env
         echo "__ENV_VIEW=''${!VIEW}" >>env
+
+        [ -n "''${!BTRFS}" ] && echo "__ENV_BTRFS=1" >>env
       done
     '';
 

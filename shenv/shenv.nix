@@ -1,4 +1,4 @@
-{ shenv, util-linux }: ''
+{ btrfs-progs ? null, shenv, util-linux }: ''
 if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	# https://github.com/NixOS/nixpkgs/issues/42117
 	PATH=":$PATH:"
@@ -37,7 +37,7 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	exec ${util-linux}/bin/setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
 	"$__ENV_GENERATION/activate" || true
-	unset __ENV_GENERATION __ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
+	unset __ENV_BTRFS __ENV_GENERATION __ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
 	exec -- "$@"
 fi
 
@@ -118,7 +118,20 @@ elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
 
-[ -n "$__ENV_PERSIST" ] && mkdir -p "$HOME/$__ENV_PERSIST"
+if [ -n "$__ENV_PERSIST" ]; then
+	PERSIST="$HOME/$__ENV_PERSIST"
+	${if btrfs-progs != null then ''
+		if [ -n "''${__ENV_BTRFS:-}" ]; then
+			mkdir -p "$(dirname "$PERSIST")"
+			[ ! -e "$PERSIST" ] && ${btrfs-progs}/bin/btrfs subvolume create "$PERSIST"
+		else
+			mkdir -p "$PERSIST"
+		fi
+	'' else ''
+		# No btrfs support
+		mkdir -p "$PERSIST"
+	''}
+fi
 
 __ENV_UNSHARE=1 exec ${util-linux}/bin/unshare -Ucm --keep-caps -- "$0" "$@"
 ''

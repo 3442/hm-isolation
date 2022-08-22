@@ -1,10 +1,11 @@
-{ util-linux, writeShellApplication, ... }:
+{ btrfs-progs, config, util-linux, writeShellApplication, ... }:
 let
-  shenv = writeShellApplication {
-    name = "shenv";
-    text = import ./shenv.nix {
-      shenv = placeholder "out";
-      inherit util-linux;
-    };
+  cfg = config.home.isolation;
+in writeShellApplication {
+  name = "shenv";
+  text = import ./shenv.nix {
+    inherit util-linux;
+    shenv = placeholder "out";
+    btrfs-progs = if cfg.btrfsSupport then btrfs-progs else null; 
   };
-in shenv
+}

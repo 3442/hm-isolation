@@ -6,6 +6,6 @@ in {
 
   home = {
     isolation.active = false;
-    packages = optional cfg.enable (pkgs.callPackage ./shenv {});
+    packages = optional cfg.enable (pkgs.callPackage ./shenv { inherit config; });
   };
 }

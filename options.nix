@@ -1,6 +1,7 @@
-{ lib, ... }:
+{ config, lib, ... }:
 with lib.types; let
   inherit (lib) mkOption mkEnableOption;
+  cfg = config.home.isolation;
 in {
   options.home.isolation = {
     enable = mkEnableOption "isolated user environments";
@@ -12,6 +13,14 @@ in {
         environment. You can use this option to disable heavier parts of your
         home configuration for isolated environments, improving build times.
         Never set this option, it is determined automatically.
+      '';
+    };
+
+    btrfsSupport = mkOption {
+      type = bool;
+      default = false;
+      description = ''
+        Enable support for persistent directories backed by btrfs subvolumes.
       '';
     };
 
@@ -75,6 +84,15 @@ in {
                     and is created upon environment entry if it doesn't exist.
                   '';
                 };
+
+                btrfs = mkOption {
+                  default = false;
+                  type = bool;
+                  description = ''
+                    Create the persistent directory as a btrfs subvolume if it
+                    doesn't exist. Require <xref linkend="opt-home.isolation.btrfsSupport"/>.
+                  '';
+                };
               };
             };
           };
@@ -82,4 +100,14 @@ in {
       });
     };
   };
+
+  config.assertions = with lib; [
+    {
+      assertion =
+        any (env: env.persist.btrfs) (attrValues cfg.environments) -> cfg.btrfsSupport;
+
+      message =
+        "Isolated environments with btrfs persistence require home.isolation.btrfsSupport";
+    }
+  ];
 }
