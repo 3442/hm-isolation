@@ -60,16 +60,11 @@ done
 [ $# -eq 1 ] || { usage; exit 1; }
 ENV="$1"
 
-LINK="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation/static/$ENV"
-[ -L "$LINK" ] && ENV_DIR="$(readlink -- "$LINK")"
-
-[ -n "''${ENV_DIR:-}" ] || {
-	echo "$0: environment '$ENV' not found"
-	exit 1
-}
+CONFIG="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation"
+ENV_DIR="$CONFIG/static/$ENV"
 
 [ -f "$ENV_DIR/env" ] || {
-	echo "$0: bad environment dir: $ENV_DIR" >&2
+	echo "$0: environment '$ENV' not found"
 	exit 1
 }
 
