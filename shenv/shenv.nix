@@ -29,7 +29,7 @@ elif [ -n "''${__ENV_SHENV:-}" ]; then
 	exec -- "$@"
 fi
 
-eval set -- "$(getopt -n shenv -l help,path,print-path -o hpP -- "$@")"
+eval set -- "$(getopt -n shenv -l help,path,print-path -o +hpP -- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
