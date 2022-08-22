@@ -22,20 +22,20 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	unset __ENV_UNSHARE
 
 	# We cannot use $0 here since that may reference $HOME
-	exec setpriv --inh-caps=-all -- "${shenv}/bin/shenv"
+	exec setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
 	"$__ENV_GENERATION/activate" || true
 	unset __ENV_GENERATION __ENV_PATH __ENV_SHENV __ENV_VIEW
-	exec -- "$SHELL"
+	exec -- "$@"
 fi
 
 eval set -- "$(getopt -n shenv -l help,path,print-path -o hpP -- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
-	usage: $0 [options] <env>
+	usage: $0 [options] <env> [-- <program> [arguments]]
 	  -h, --help        Print this message and exit
-	  -p, --path        Only add the environment's path to $PATH
+	  -p, --path        Only add the environment's path to \$PATH
 	  -P, --print-path  Print the environment's path and exit
 	EOF
 }
@@ -72,8 +72,10 @@ while true; do
 	esac
 done
 
-[ $# -eq 1 ] || { usage; exit 1; }
+[ $# -ge 1 ] || { usage; exit 1; }
 ENV="$1"
+shift
+[ $# -eq 0 ] && set -- "$SHELL"
 
 CONFIG="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation"
 ENV_DIR="$CONFIG/static/$ENV"
@@ -98,8 +100,8 @@ if [ -n "$OPT_PRINT_PATH" ]; then
 	exit 0
 elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH"
-	exec -- "$SHELL"
+	exec -- "$@"
 fi
 
-__ENV_UNSHARE=1 exec unshare -Ucm --keep-caps -- "$0"
+__ENV_UNSHARE=1 exec unshare -Ucm --keep-caps -- "$0" "$@"
 ''
