@@ -31,18 +31,21 @@ with lib; let
         echo "__ENV_VIEW=''${!VIEW}" >>env
       done
     '';
+
+  specialization = env: {
+    home = {
+      isolation.active = mkForce true;
+      packages = env.packages;
+    };
+  };
 in {
   config = mkIf (cfg.enable && statics != {}) {
     # This prevents infinite recursion between activationPackages and env files
-    xdg = mkIf (config.specialization != {}) {
+    xdg = mkIf (!cfg.active) {
       configFile."hm-isolation/static".source = static;
     };
 
-    specialization = let
-      specialization = env: {
-        home.packages = env.packages;
-      };
-    in mapAttrs' (name: env: {
+    specialization = mapAttrs' (name: env: {
       name = "shenv-${name}";
       value.configuration = specialization env;
     }) statics;

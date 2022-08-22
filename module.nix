@@ -4,7 +4,8 @@ with lib; let
 in {
   imports = [ ./options.nix ./static.nix ];
 
-  config = mkIf cfg.enable {
-    home.packages = [ (pkgs.callPackage ./shenv {}) ];
+  home = {
+    isolation.active = false;
+    packages = optional cfg.enable (pkgs.callPackage ./shenv {});
   };
 }

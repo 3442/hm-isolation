@@ -5,6 +5,16 @@ in {
   options.home.isolation = {
     enable = mkEnableOption "isolated user environments";
 
+    active = mkOption {
+      type = bool;
+      description = ''
+        Whether the current configuration being evaluated is for an isolated
+        environment. You can use this option to disable heavier parts of your
+        home configuration for isolated environments, improving build times.
+        Never set this option, it is determined automatically.
+      '';
+    };
+
     environments = mkOption {
       default = {};
       description = ''
