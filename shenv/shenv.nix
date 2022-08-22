@@ -10,9 +10,11 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	UMOUNT=${util-linux}/bin/umount
 
 	cd
-	PIVOT="$(mktemp -d)"
-	trap 'rm -df -- "$PIVOT"' EXIT
-	$MOUNT --rbind -- . "$PIVOT"
+	if [ -n "$__ENV_VIEW" ]; then
+		PIVOT="$(mktemp -d)"
+		trap 'rm -df -- "$PIVOT"' EXIT
+		$MOUNT --rbind -- . "$PIVOT"
+	fi
 
 	if [ -n "$__ENV_PERSIST" ]; then
 		$MOUNT --rbind -- "$__ENV_PERSIST" .
@@ -21,11 +23,13 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	fi
 
 	cd
-	mkdir -p "./$__ENV_VIEW"
-	[ -d /run/mount ] && $MOUNT -t tmpfs tmpfs /run/mount
-	$MOUNT --move -- "$PIVOT" "./$__ENV_VIEW"
-	[ -d /run/mount ] && $UMOUNT /run/mount
-	rm -df -- "$PIVOT"
+	if [ -n "$__ENV_VIEW" ]; then
+		mkdir -p "./$__ENV_VIEW"
+		[ -d /run/mount ] && $MOUNT -t tmpfs tmpfs /run/mount
+		$MOUNT --move -- "$PIVOT" "./$__ENV_VIEW"
+		[ -d /run/mount ] && $UMOUNT /run/mount
+		rm -df -- "$PIVOT"
+	fi
 
 	unset __ENV_UNSHARE
 

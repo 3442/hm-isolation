@@ -8,15 +8,15 @@ with lib; let
     SHENV = pkgs.callPackage ./shenv {};
   };
 
-  envVars = name: env: {
+  envVars = name: env: let
+    maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
+  in {
     "ENV_${name}_GENERATION" =
       config.specialization."shenv-${name}".configuration.home.activationPackage;
 
-    "ENV_${name}_PERSIST" =
-      escapeShellArg (optionalString (env.persist.under != null) env.persist.under);
-
-    "ENV_${name}_VIEW" = escapeShellArg env.bindHome;
     "ENV_${name}_PATH" = makeBinPath env.packages;
+    "ENV_${name}_PERSIST" = maybeNull env.persist.under;
+    "ENV_${name}_VIEW" = maybeNull env.bindHome;
   };
 
   static = pkgs.runCommand

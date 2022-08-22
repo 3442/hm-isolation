@@ -34,7 +34,8 @@ in {
           };
 
           bindHome = mkOption {
-            type = str;
+            type = nullOr str;
+            default = null;
             example = "real-home/";
 
             description = ''
