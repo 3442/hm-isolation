@@ -40,7 +40,9 @@ with lib; let
         echo "__ENV_PERSIST=''${!PERSIST}" >>env
         echo "__ENV_VIEW=''${!VIEW}" >>env
 
-        [ -n "''${!BTRFS}" ] && echo "__ENV_BTRFS=1" >>env
+        if [ -n "''${!BTRFS}" ]; then
+          echo "__ENV_BTRFS=1" >>env
+        fi
       done
     '';
 
