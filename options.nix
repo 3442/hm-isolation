@@ -55,6 +55,28 @@ in {
               Set of packages to include in the environment path.
             '';
           };
+
+          persist = mkOption {
+            default = {};
+            description = ''
+              Options controlling persistence of the environment's home directory.
+            '';
+
+            type = submodule {
+              options = {
+                under = mkOption {
+                  default = null;
+                  type = nullOr str;
+                  description = ''
+                    This directory becomes the home directory of the environment.
+                    Setting this option to a non-null value enables environment
+                    persistence. The path is relative to the real home directory
+                    and is created upon environment entry if it doesn't exist.
+                  '';
+                };
+              };
+            };
+          };
         };
       });
     };

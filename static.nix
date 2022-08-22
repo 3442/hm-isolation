@@ -12,6 +12,9 @@ with lib; let
     "ENV_${name}_GENERATION" =
       config.specialization."shenv-${name}".configuration.home.activationPackage;
 
+    "ENV_${name}_PERSIST" =
+      escapeShellArg (optionalString (env.persist.under != null) env.persist.under);
+
     "ENV_${name}_VIEW" = escapeShellArg env.bindHome;
     "ENV_${name}_PATH" = makeBinPath env.packages;
   };
@@ -25,13 +28,15 @@ with lib; let
         cd $out/$ENV
 
         GENERATION="ENV_''${ENV}_GENERATION"
-        VIEW="ENV_''${ENV}_VIEW"
         PATH_="ENV_''${ENV}_PATH"
+        PERSIST="ENV_''${ENV}_PERSIST"
+        VIEW="ENV_''${ENV}_VIEW"
 
         echo "__ENV_SHENV=$SHENV" >env
         echo "__ENV_GENERATION=''${!GENERATION}" >>env
-        echo "__ENV_VIEW=''${!VIEW}" >>env
         echo "__ENV_PATH=''${!PATH_}" >>env
+        echo "__ENV_PERSIST=''${!PERSIST}" >>env
+        echo "__ENV_VIEW=''${!VIEW}" >>env
       done
     '';
 

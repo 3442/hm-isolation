@@ -13,7 +13,12 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	PIVOT="$(mktemp -d)"
 	trap 'rm -df -- "$PIVOT"' EXIT
 	$MOUNT --rbind -- . "$PIVOT"
-	$MOUNT -t tmpfs tmpfs .
+
+	if [ -n "$__ENV_PERSIST" ]; then
+		$MOUNT --rbind -- "$__ENV_PERSIST" .
+	else
+		$MOUNT -t tmpfs tmpfs .
+	fi
 
 	cd
 	mkdir -p "./$__ENV_VIEW"
@@ -28,7 +33,7 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	exec ${util-linux}/bin/setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
 	"$__ENV_GENERATION/activate" || true
-	unset __ENV_GENERATION __ENV_PATH __ENV_SHENV __ENV_VIEW
+	unset __ENV_GENERATION __ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
 	exec -- "$@"
 fi
 
@@ -108,6 +113,8 @@ if [ -n "$OPT_PRINT_PATH" ]; then
 elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
+
+[ -n "$__ENV_PERSIST" ] && mkdir -p "$HOME/$__ENV_PERSIST"
 
 __ENV_UNSHARE=1 exec ${util-linux}/bin/unshare -Ucm --keep-caps -- "$0" "$@"
 ''
