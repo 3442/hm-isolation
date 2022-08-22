@@ -25,24 +25,39 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	exec setpriv --inh-caps=-all -- "${shenv}/bin/shenv"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
 	"$__ENV_GENERATION/activate" || true
-	unset __ENV_GENERATION __ENV_SHENV __ENV_VIEW
+	unset __ENV_GENERATION __ENV_PATH __ENV_SHENV __ENV_VIEW
 	exec -- "$SHELL"
 fi
 
-eval set -- "$(getopt -n shenv -l help -o h -- "$@")"
+eval set -- "$(getopt -n shenv -l help,path,print-path -o hpP -- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
 	usage: $0 [options] <env>
-	  -h, --help    Print this message and exit
+	  -h, --help        Print this message and exit
+	  -p, --path        Only add the environment's path to $PATH
+	  -P, --print-path  Print the environment's path and exit
 	EOF
 }
+
+OPT_PATH=""
+OPT_PRINT_PATH=""
 
 while true; do
 	case "$1" in
 		-h|--help)
 			usage
 			exit 0
+			;;
+
+		-p|--path)
+			OPT_PATH=1
+			shift
+			;;
+
+		-P|--print-path)
+			OPT_PRINT_PATH=1
+			shift
 			;;
 
 		--)
@@ -77,6 +92,14 @@ set +a
 	echo "$0: environment does not match this version of hm-isolation: $ENV_DIR" >&2
 	exit 1
 }
+
+if [ -n "$OPT_PRINT_PATH" ]; then
+	echo "$__ENV_PATH"
+	exit 0
+elif [ -n "$OPT_PATH" ]; then
+	PATH="$__ENV_PATH:$PATH"
+	exec -- "$SHELL"
+fi
 
 __ENV_UNSHARE=1 exec unshare -Ucm --keep-caps -- "$0"
 ''

@@ -13,6 +13,7 @@ with lib; let
       config.specialization."shenv-${name}".configuration.home.activationPackage;
 
     "ENV_${name}_VIEW" = escapeShellArg env.bindHome;
+    "ENV_${name}_PATH" = makeBinPath env.packages;
   };
 
   static = pkgs.runCommand
@@ -25,10 +26,12 @@ with lib; let
 
         GENERATION="ENV_''${ENV}_GENERATION"
         VIEW="ENV_''${ENV}_VIEW"
+        PATH_="ENV_''${ENV}_PATH"
 
         echo "__ENV_SHENV=$SHENV" >env
         echo "__ENV_GENERATION=''${!GENERATION}" >>env
         echo "__ENV_VIEW=''${!VIEW}" >>env
+        echo "__ENV_PATH=''${!PATH_}" >>env
       done
     '';
 
