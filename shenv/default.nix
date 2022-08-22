@@ -1,11 +1,10 @@
-{ getopt, util-linux, writeShellApplication, ... }:
+{ util-linux, writeShellApplication, ... }:
 let
   shenv = writeShellApplication {
     name = "shenv";
-    runtimeInputs = [ getopt util-linux ];
-
     text = import ./shenv.nix {
       shenv = placeholder "out";
+      inherit util-linux;
     };
   };
 in shenv

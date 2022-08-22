@@ -1,4 +1,4 @@
-{ shenv }: ''
+{ shenv, util-linux }: ''
 if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	# https://github.com/NixOS/nixpkgs/issues/42117
 	PATH=":$PATH:"
@@ -6,30 +6,37 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	PATH="''${PATH#:}"
 	PATH="''${PATH%:}"
 
+	MOUNT=${util-linux}/bin/mount
+	UMOUNT=${util-linux}/bin/umount
+
 	cd
 	PIVOT="$(mktemp -d)"
 	trap 'rm -df -- "$PIVOT"' EXIT
-	mount --rbind -- . "$PIVOT"
-	mount -t tmpfs tmpfs .
+	$MOUNT --rbind -- . "$PIVOT"
+	$MOUNT -t tmpfs tmpfs .
 
 	cd
 	mkdir -p "./$__ENV_VIEW"
-	[ -d /run/mount ] && mount -t tmpfs tmpfs /run/mount
-	mount --move -- "$PIVOT" "./$__ENV_VIEW"
-	[ -d /run/mount ] && umount /run/mount
+	[ -d /run/mount ] && $MOUNT -t tmpfs tmpfs /run/mount
+	$MOUNT --move -- "$PIVOT" "./$__ENV_VIEW"
+	[ -d /run/mount ] && $UMOUNT /run/mount
 	rm -df -- "$PIVOT"
 
 	unset __ENV_UNSHARE
 
 	# We cannot use $0 here since that may reference $HOME
-	exec setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
+	exec ${util-linux}/bin/setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
 	"$__ENV_GENERATION/activate" || true
 	unset __ENV_GENERATION __ENV_PATH __ENV_SHENV __ENV_VIEW
 	exec -- "$@"
 fi
 
-eval set -- "$(getopt -n shenv -l help,path,print-path -o +hpP -- "$@")"
+eval set -- "$(${util-linux}/bin/getopt \
+	-n shenv \
+	-l help,path,print-path \
+	-o +hpP \
+	-- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
@@ -99,9 +106,8 @@ if [ -n "$OPT_PRINT_PATH" ]; then
 	echo "$__ENV_PATH"
 	exit 0
 elif [ -n "$OPT_PATH" ]; then
-	PATH="$__ENV_PATH:$PATH"
-	exec -- "$@"
+	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
 
-__ENV_UNSHARE=1 exec unshare -Ucm --keep-caps -- "$0" "$@"
+__ENV_UNSHARE=1 exec ${util-linux}/bin/unshare -Ucm --keep-caps -- "$0" "$@"
 ''
