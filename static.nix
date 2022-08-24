@@ -10,11 +10,11 @@ with lib; let
 
   envVars = name: env: let
     maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
+    specialization = config.specialization."shenv-${name}".configuration;
   in {
-    "ENV_${name}_GENERATION" =
-      config.specialization."shenv-${name}".configuration.home.activationPackage;
-
     "ENV_${name}_BTRFS" = env.persist.btrfs;
+    "ENV_${name}_CONFIG" = "${specialization.xdg.configHome}/hm-isolation";
+    "ENV_${name}_GENERATION" = specialization.home.activationPackage;
     "ENV_${name}_PATH" = makeBinPath env.packages;
     "ENV_${name}_PERSIST" = maybeNull env.persist.under;
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
@@ -29,12 +29,14 @@ with lib; let
         cd $out/$ENV
 
         BTRFS="ENV_''${ENV}_BTRFS"
+        CONFIG="ENV_''${ENV}_CONFIG"
         GENERATION="ENV_''${ENV}_GENERATION"
         PATH_="ENV_''${ENV}_PATH"
         PERSIST="ENV_''${ENV}_PERSIST"
         VIEW="ENV_''${ENV}_VIEW"
 
         echo "__ENV_SHENV=$SHENV" >env
+        echo "__ENV_CONFIG=''${!CONFIG}" >>env
         echo "__ENV_GENERATION=''${!GENERATION}" >>env
         echo "__ENV_PATH=''${!PATH_}" >>env
         echo "__ENV_PERSIST=''${!PERSIST}" >>env
