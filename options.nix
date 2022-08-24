@@ -42,17 +42,6 @@ in {
             '';
           };
 
-          bindHome = mkOption {
-            type = nullOr str;
-            default = null;
-            example = "real-home/";
-
-            description = ''
-              Where to bind-mount the real /home inside the environment's mount namespace.
-              This path is relative to $HOME.
-            '';
-          };
-
           packages = mkOption {
             type = listOf package;
             default = [];
@@ -63,6 +52,29 @@ in {
 
             description = ''
               Set of packages to include in the environment path.
+            '';
+          };
+
+          namespaced = mkOption {
+            type = bool;
+            default = false;
+
+            description = ''
+              Whether to run this environment in separate user and mount namespaces.
+              With namespaces, each environment gets its own private $HOME. This
+              requires kernel support for unrestricted user namespaces. Several other
+              environment options require namespaces.
+            '';
+          };
+
+          bindHome = mkOption {
+            type = nullOr str;
+            default = null;
+            example = "real-home/";
+
+            description = ''
+              Where to bind-mount the real /home inside the environment's mount namespace.
+              This path is relative to $HOME.
             '';
           };
 

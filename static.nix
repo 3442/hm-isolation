@@ -12,10 +12,13 @@ with lib; let
     maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
     specialization = config.specialization."shenv-${name}".configuration;
   in {
-    "ENV_${name}_BTRFS" = env.persist.btrfs;
-    "ENV_${name}_CONFIG" = "${specialization.xdg.configHome}/hm-isolation";
-    "ENV_${name}_GENERATION" = specialization.home.activationPackage;
+    "ENV_${name}_CONFIG" =
+      optionalString env.namespaced "${specialization.xdg.configHome}/hm-isolation";
+
     "ENV_${name}_PATH" = makeBinPath env.packages;
+  } // optionalAttrs env.namespaced {
+    "ENV_${name}_BTRFS" = env.persist.btrfs;
+    "ENV_${name}_GENERATION" = specialization.home.activationPackage;
     "ENV_${name}_PERSIST" = maybeNull env.persist.under;
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
   };
@@ -36,9 +39,11 @@ with lib; let
         VIEW="ENV_''${ENV}_VIEW"
 
         echo "__ENV_SHENV=$SHENV" >env
+        echo "__ENV_PATH=''${!PATH_}" >>env
+        [ -n "''${!CONFIG}" ] || continue
+
         echo "__ENV_CONFIG=''${!CONFIG}" >>env
         echo "__ENV_GENERATION=''${!GENERATION}" >>env
-        echo "__ENV_PATH=''${!PATH_}" >>env
         echo "__ENV_PERSIST=''${!PERSIST}" >>env
         echo "__ENV_VIEW=''${!VIEW}" >>env
 
@@ -64,6 +69,6 @@ in {
     specialization = mapAttrs' (name: env: {
       name = "shenv-${name}";
       value.configuration = specialization env;
-    }) statics;
+    }) (filterAttrs (_: env: env.namespaced) statics);
   };
 }

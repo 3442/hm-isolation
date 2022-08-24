@@ -139,6 +139,8 @@ set +a
 	exit 1
 }
 
+[ -n "''${__ENV_CONFIG:-}" ] || OPT_PATH=1
+
 if [ -n "$OPT_PRINT_PATH" ]; then
 	echo "$__ENV_PATH"
 	exit 0
@@ -146,7 +148,7 @@ elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
 
-if [ -n "$__ENV_PERSIST" ]; then
+if [ -n "''${__ENV_PERSIST:-}" ]; then
 	PERSIST="$HOME/$__ENV_PERSIST"
 	${if btrfs-progs != null then ''
 		if [ -n "''${__ENV_BTRFS:-}" ]; then
