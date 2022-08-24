@@ -28,11 +28,14 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	GCROOTS_SOURCE="$__ENV_CONFIG/self/gcroots"
 	PROFILES_TARGET="/nix/var/nix/profiles/per-user/$USER"
 	GCROOTS_TARGET="/nix/var/nix/gcroots/per-user/$USER"
-
 	mkdir -p -- "$PROFILES_SOURCE" "$GCROOTS_SOURCE"
-	[ -d "$PROFILES_SOURCE/profile" ] || {
+
+	if [ ! -d "$PROFILES_SOURCE/profile" ]; then
 		ln -sf -- "$(readlink -f "$PROFILES_TARGET/profile")" "$PROFILES_SOURCE/profile"
-	}
+		export __ENV_ACTIVATE=1
+	elif [ ! "$(readlink -f "$PROFILES_SOURCE/home-manager")" = "$__ENV_GENERATION" ]; then
+		export __ENV_ACTIVATE=1
+	fi
 
 	$MOUNT --rbind -- "$PROFILES_SOURCE" "$PROFILES_TARGET"
 	$MOUNT --rbind -- "$GCROOTS_SOURCE" "$GCROOTS_TARGET"
@@ -50,10 +53,10 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	# We cannot use $0 here since that may reference $HOME
 	exec ${util-linux}/bin/setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
 elif [ -n "''${__ENV_SHENV:-}" ]; then
-	"$__ENV_GENERATION/activate" || true
+	[ -n "''${__ENV_ACTIVATE:-}" ] && { "$__ENV_GENERATION/activate" || true; }
 
 	unset \
-		__ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
+		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
 		__ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
 
 	exec -- "$@"
