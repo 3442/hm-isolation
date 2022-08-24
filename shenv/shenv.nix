@@ -64,19 +64,21 @@ fi
 
 eval set -- "$(${util-linux}/bin/getopt \
 	-n shenv \
-	-l help,path,print-path \
-	-o +hpP \
+	-l help,activate,path,print-path \
+	-o +hapP \
 	-- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
 	usage: $0 [options] <env> [-- <program> [arguments]]
 	  -h, --help        Print this message and exit
+	  -a, --activate    Activate the Home Manager generation
 	  -p, --path        Only add the environment's path to \$PATH
 	  -P, --print-path  Print the environment's path and exit
 	EOF
 }
 
+OPT_ACTIVATE=""
 OPT_PATH=""
 OPT_PRINT_PATH=""
 
@@ -85,6 +87,11 @@ while true; do
 		-h|--help)
 			usage
 			exit 0
+			;;
+
+		-a|--activate)
+			OPT_ACTIVATE=1
+			shift
 			;;
 
 		-p|--path)
@@ -153,6 +160,8 @@ if [ -n "$__ENV_PERSIST" ]; then
 		mkdir -p "$PERSIST"
 	''}
 fi
+
+[ -n "$OPT_ACTIVATE" ] && export __ENV_ACTIVATE=1
 
 __ENV_UNSHARE=1 exec ${util-linux}/bin/unshare -Ucm --keep-caps -- "$0" "$@"
 ''
