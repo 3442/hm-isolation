@@ -1,6 +1,6 @@
 { config, lib, ... }:
 with lib.types; let
-  inherit (lib) mkOption mkEnableOption;
+  inherit (lib) mkEnableOption mkOption mkOptionDefault;
   cfg = config.home.isolation;
 in {
   options.home.isolation = {
@@ -24,16 +24,69 @@ in {
       '';
     };
 
+    defaults = {
+      static = mkOption {
+        type = bool;
+        default = true;
+
+        description = ''
+          Default for <xref linkend="opt-home.isolation.environments._name_.static"/>.
+        '';
+      };
+
+      namespaced = mkOption {
+        type = bool;
+        default = false;
+
+        description = ''
+          Default for <xref linkend="opt-home.isolation.environments._name_.namespaced"/>.
+        '';
+      };
+
+      bindHome = mkOption {
+        type = nullOr str;
+        default = null;
+        example = "real-home/";
+
+        description = ''
+          Default for <xref linkend="opt-home.isolation.environments._name_.bindHome"/>.
+        '';
+      };
+
+      persist = {
+        base = mkOption {
+          type = nullOr str;
+          default = null;
+
+          description = ''
+            Default base for persistent directories, used in the default value of
+            <xref linkend="opt-home.isolation.environments._name_.persist.base"/>.
+          '';
+        };
+
+        btrfs = mkOption {
+          type = bool;
+          default = false;
+
+          description = ''
+            Default for <xref linkend="opt-home.isolation.environments._name_.persist.btrfs"/>.
+          '';
+        };
+      };
+    };
+
     environments = mkOption {
       default = {};
       description = ''
-        Set of static environments known at Home Manager build time.
+        Set of environments known at Home Manager build time.
       '';
 
-      type = attrsOf (submodule {
+      type = attrsOf (submodule ({ name, ... }: {
         options = {
           static = mkOption {
             type = bool;
+            default = cfg.defaults.static;
+            defaultText = "config.home.isolation.defaults.static";
 
             description = ''
               Whether to build this environment and all its dependencies along
@@ -57,7 +110,8 @@ in {
 
           namespaced = mkOption {
             type = bool;
-            default = false;
+            default = cfg.defaults.namespaced;
+            defaultText = "config.home.isolation.defaults.namespaced";
 
             description = ''
               Whether to run this environment in separate user and mount namespaces.
@@ -69,7 +123,8 @@ in {
 
           bindHome = mkOption {
             type = nullOr str;
-            default = null;
+            default = cfg.defaults.bindHome;
+            defaultText = "config.home.isolation.defaults.bindHome";
             example = "real-home/";
 
             description = ''
@@ -87,8 +142,9 @@ in {
             type = submodule {
               options = {
                 under = mkOption {
-                  default = null;
                   type = nullOr str;
+                  defaultText = "\"\${config.home.isolation.defaults.persist.base}/\${name}\"";
+
                   description = ''
                     This directory becomes the home directory of the environment.
                     Setting this option to a non-null value enables environment
@@ -98,8 +154,10 @@ in {
                 };
 
                 btrfs = mkOption {
-                  default = false;
                   type = bool;
+                  default = cfg.defaults.persist.btrfs;
+                  defaultText = "config.home.isolation.defaults.persist.btrfs";
+
                   description = ''
                     Create the persistent directory as a btrfs subvolume if it
                     doesn't exist. Require <xref linkend="opt-home.isolation.btrfsSupport"/>.
@@ -109,7 +167,13 @@ in {
             };
           };
         };
-      });
+
+        config.persist.under = let
+          under = if cfg.defaults.persist.base != null
+            then "${cfg.defaults.persist.base}/${name}"
+            else null;
+        in mkOptionDefault under;
+      }));
     };
   };
 
