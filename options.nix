@@ -166,6 +166,16 @@ in {
               };
             };
           };
+
+          config = mkOption {
+            type = attrs; # TODO: extendModules does not work here
+            default = {};
+            visible = "shallow";
+
+            description = ''
+              Arbitrary Home Manager configuration settings.
+            '';
+          };
         };
 
         config.persist.under = let

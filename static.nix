@@ -68,7 +68,7 @@ in {
 
     specialization = mapAttrs' (name: env: {
       name = "shenv-${name}";
-      value.configuration = specialization env;
+      value.configuration = mkMerge [ (specialization env) env.config ];
     }) (filterAttrs (_: env: env.namespaced) statics);
   };
 }
