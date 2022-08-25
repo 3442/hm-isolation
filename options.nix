@@ -1,6 +1,7 @@
-{ config, lib, ... }:
+{ config, lib, extendModules, ... }:
 with lib.types; let
-  inherit (lib) mkEnableOption mkOption mkOptionDefault;
+  inherit (lib) mkEnableOption mkOption mkOptionDefault mkOverride;
+  outerConfig = config;
   cfg = config.home.isolation;
 in {
   options.home.isolation = {
@@ -81,7 +82,7 @@ in {
         Set of environments known at Home Manager build time.
       '';
 
-      type = attrsOf (submodule ({ name, ... }: {
+      type = attrsOf (submodule ({ config, name, ... }: {
         options = {
           static = mkOption {
             type = bool;
@@ -168,13 +169,29 @@ in {
           };
 
           hm = mkOption {
-            type = attrs; # TODO: extendModules does not work here
             default = {};
             visible = "shallow";
 
             description = ''
               Arbitrary Home Manager configuration.
             '';
+
+            type = (extendModules {
+              modules = [ {
+                specialization = mkOverride 0 {};
+
+                home = {
+                  inherit (config) packages;
+
+                  isolation = {
+                    active = mkOverride 0 true;
+                    environments = mkOerride 0 {};
+                  };
+                };
+              } ];
+            }).type;
+
+            apply = hm: if config.namespaced then hm else outerConfig;
           };
         };
 

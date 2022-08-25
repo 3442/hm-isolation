@@ -10,15 +10,14 @@ with lib; let
 
   envVars = name: env: let
     maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
-    specialization = config.specialization."shenv-${name}".configuration;
   in {
     "ENV_${name}_CONFIG" =
-      optionalString env.namespaced "${specialization.xdg.configHome}/hm-isolation";
+      optionalString env.namespaced "${env.hm.xdg.configHome}/hm-isolation";
 
     "ENV_${name}_PATH" = makeBinPath env.packages;
   } // optionalAttrs env.namespaced {
     "ENV_${name}_BTRFS" = env.persist.btrfs;
-    "ENV_${name}_GENERATION" = specialization.home.activationPackage;
+    "ENV_${name}_GENERATION" = env.hm.home.activationPackage;
     "ENV_${name}_PERSIST" = maybeNull env.persist.under;
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
   };
@@ -52,13 +51,6 @@ with lib; let
         fi
       done
     '';
-
-  specialization = env: {
-    home = {
-      isolation.active = mkForce true;
-      packages = env.packages;
-    };
-  };
 in {
   config = mkIf cfg.enable {
     home.isolation.environments = let
@@ -72,10 +64,5 @@ in {
     xdg = mkIf (!cfg.active && statics != {}) {
       configFile."hm-isolation/static".source = static;
     };
-
-    specialization = mapAttrs' (name: env: {
-      name = "shenv-${name}";
-      value.configuration = mkMerge [ (specialization env) env.hm ];
-    }) (filterAttrs (_: env: env.namespaced) statics);
   };
 }
