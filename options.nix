@@ -185,6 +185,19 @@ in {
         in mkOptionDefault under;
       }));
     };
+
+    modules = mkOption {
+      type = attrsOf (oneOf [ path str (functionTo attrs) ]);
+      default = {};
+
+      description = ''
+        Setting this option allows you to define environments in their own module
+        set, separate from the outer Home Manager configuration tree. Note that
+        these module are imported as submodules of the environment. Thus, options
+        such as `static' and `packages' are exposed to it at the root of the module
+        option and configuration hierarchy.
+      '';
+    };
   };
 
   config.assertions = with lib; [
