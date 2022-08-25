@@ -167,13 +167,13 @@ in {
             };
           };
 
-          config = mkOption {
+          hm = mkOption {
             type = attrs; # TODO: extendModules does not work here
             default = {};
             visible = "shallow";
 
             description = ''
-              Arbitrary Home Manager configuration settings.
+              Arbitrary Home Manager configuration.
             '';
           };
         };
