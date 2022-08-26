@@ -64,8 +64,8 @@ fi
 
 eval set -- "$(${util-linux}/bin/getopt \
 	-n shenv \
-	-l help,version,activate,path,print-path \
-	-o +hvapP \
+	-l help,version,activate,list,path,print-path \
+	-o +hvalpP \
 	-- "$@")"
 
 usage() {
@@ -74,12 +74,14 @@ usage() {
 	  -h, --help        Print this message and exit
 	  -v, --version     Print version and exit
 	  -a, --activate    Activate the Home Manager generation
+	  -l, --list        List available environments
 	  -p, --path        Only add the environment's path to \$PATH
 	  -P, --print-path  Print the environment's path and exit
 	EOF
 }
 
 OPT_ACTIVATE=""
+OPT_LIST=""
 OPT_PATH=""
 OPT_PRINT_PATH=""
 
@@ -92,6 +94,11 @@ while true; do
 
 		-a|--activate)
 			OPT_ACTIVATE=1
+			shift
+			;;
+
+		-l|--list)
+			OPT_LIST=1
 			shift
 			;;
 
@@ -111,7 +118,7 @@ while true; do
 			;;
 
 		-v|--version)
-			echo "hm-isolation utility (shenv) 0.1.0" #TODO: change to shenv.version
+			echo "hm-isolation utility (shenv) 0.1.1" #TODO: change to shenv.version
 			exit
 			;;
 
@@ -122,13 +129,19 @@ while true; do
 	esac
 done
 
+STATIC="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation/static"
+
+[ -n "$OPT_LIST" ] && {
+	[ -d "$STATIC" ] && find -- "$STATIC/" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+	exit
+}
+
 [ $# -ge 1 ] || { usage; exit 1; }
 ENV="$1"
 shift
 [ $# -eq 0 ] && set -- "$SHELL"
 
-CONFIG="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation"
-ENV_DIR="$CONFIG/static/$ENV"
+ENV_DIR="$STATIC/$ENV"
 
 [ -f "$ENV_DIR/env" ] || {
 	echo "$0: environment '$ENV' not found"
