@@ -2,7 +2,8 @@
 let
   cfg = config.home.isolation;
 in writeShellApplication {
-  name = "shenv";
+  name = "shenv"; #TODO: change to pname and add version
+
   text = import ./shenv.nix {
     inherit util-linux;
     shenv = placeholder "out";

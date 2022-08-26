@@ -64,14 +64,15 @@ fi
 
 eval set -- "$(${util-linux}/bin/getopt \
 	-n shenv \
-	-l help,activate,path,print-path \
-	-o +hapP \
+	-l help,version,activate,path,print-path \
+	-o +hvapP \
 	-- "$@")"
 
 usage() {
 	cat >&2 <<-EOF
 	usage: $0 [options] <env> [-- <program> [arguments]]
 	  -h, --help        Print this message and exit
+	  -v, --version     Print version and exit
 	  -a, --activate    Activate the Home Manager generation
 	  -p, --path        Only add the environment's path to \$PATH
 	  -P, --print-path  Print the environment's path and exit
@@ -86,7 +87,7 @@ while true; do
 	case "$1" in
 		-h|--help)
 			usage
-			exit 0
+			exit
 			;;
 
 		-a|--activate)
@@ -107,6 +108,11 @@ while true; do
 		--)
 			shift
 			break
+			;;
+
+		-v|--version)
+			echo "hm-isolation utility (shenv) 0.1.0" #TODO: change to shenv.version
+			exit
 			;;
 
 		*)
@@ -143,7 +149,7 @@ set +a
 
 if [ -n "$OPT_PRINT_PATH" ]; then
 	echo "$__ENV_PATH"
-	exit 0
+	exit
 elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
