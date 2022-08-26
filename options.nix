@@ -9,6 +9,8 @@ in {
 
     active = mkOption {
       type = bool;
+      default = false;
+
       description = ''
         Whether the current configuration being evaluated is for an isolated
         environment. You can use this option to disable heavier parts of your

@@ -52,17 +52,8 @@ with lib; let
       done
     '';
 in {
-  config = mkIf cfg.enable {
-    home.isolation.environments = let
-      rootModule = module: { ... }: {
-        inherit (config) _module;
-        imports = [ module ];
-      };
-    in mapAttrs (_: rootModule) cfg.modules;
-
-    # This prevents infinite recursion between activationPackages and env files
-    xdg = mkIf (!cfg.active && statics != {}) {
-      configFile."hm-isolation/static".source = static;
-    };
+  # This prevents infinite recursion between activationPackages and env files
+  xdg = mkIf (cfg.enable && !cfg.active && statics != {}) {
+    configFile."hm-isolation/static".source = static;
   };
 }
