@@ -204,7 +204,7 @@ in {
     };
 
     modules = mkOption {
-      type = attrsOf (oneOf [ path str (functionTo attrs) ]);
+      type = attrsOf path;
       default = {};
 
       description = ''
