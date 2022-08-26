@@ -12,9 +12,10 @@ in stdenv.mkDerivation {
   util_linux = util-linux;
 
   installPhase = ''
-    mkdir -p $out/bin
+    mkdir -p $out/bin $out/share/zsh/site-functions
     substituteAll $src/shenv.sh $out/bin/shenv
     chmod +x $out/bin/shenv
+    cp $src/completion.zsh $out/share/zsh/site-functions/_shenv
   '';
 
   checkPhase = ''
