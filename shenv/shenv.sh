@@ -1,13 +1,15 @@
-{ btrfs-progs ? null, shenv, util-linux }: ''
-if [ -n "''${__ENV_UNSHARE:-}" ]; then
+#!@runtimeShell@
+set -o errexit -o nounset -o pipefail
+
+if [ -n "${__ENV_UNSHARE:-}" ]; then
 	# https://github.com/NixOS/nixpkgs/issues/42117
 	PATH=":$PATH:"
-	PATH="''${PATH//:\/run\/wrappers\/bin:/:}"
-	PATH="''${PATH#:}"
-	PATH="''${PATH%:}"
+	PATH="${PATH//:\/run\/wrappers\/bin:/:}"
+	PATH="${PATH#:}"
+	PATH="${PATH%:}"
 
-	MOUNT=${util-linux}/bin/mount
-	UMOUNT=${util-linux}/bin/umount
+	MOUNT=@util_linux@/bin/mount
+	UMOUNT=@util_linux@/bin/umount
 
 	cd
 	if [ -n "$__ENV_VIEW" ]; then
@@ -51,9 +53,9 @@ if [ -n "''${__ENV_UNSHARE:-}" ]; then
 	unset __ENV_UNSHARE
 
 	# We cannot use $0 here since that may reference $HOME
-	exec ${util-linux}/bin/setpriv --inh-caps=-all -- "${shenv}/bin/shenv" "$@"
-elif [ -n "''${__ENV_SHENV:-}" ]; then
-	[ -n "''${__ENV_ACTIVATE:-}" ] && { "$__ENV_GENERATION/activate" || true; }
+	exec @util_linux@/bin/setpriv --inh-caps=-all -- "@out@/bin/shenv" "$@"
+elif [ -n "${__ENV_SHENV:-}" ]; then
+	[ -n "${__ENV_ACTIVATE:-}" ] && { "$__ENV_GENERATION/activate" || true; }
 
 	unset \
 		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
@@ -62,7 +64,7 @@ elif [ -n "''${__ENV_SHENV:-}" ]; then
 	exec -- "$@"
 fi
 
-eval set -- "$(${util-linux}/bin/getopt \
+eval set -- "$(@util_linux@/bin/getopt \
 	-n shenv \
 	-l help,version,activate,list,path,print-path \
 	-o +hvalpP \
@@ -118,7 +120,7 @@ while true; do
 			;;
 
 		-v|--version)
-			echo "hm-isolation utility (shenv) 0.1.1" #TODO: change to shenv.version
+			echo "hm-isolation utility (shenv) @version@"
 			exit
 			;;
 
@@ -129,7 +131,7 @@ while true; do
 	esac
 done
 
-STATIC="''${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation/static"
+STATIC="${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation/static"
 
 [ -n "$OPT_LIST" ] && {
 	[ -d "$STATIC" ] && find -- "$STATIC/" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
@@ -153,12 +155,12 @@ set -a
 . "$ENV_DIR/env"
 set +a
 
-[ "$__ENV_SHENV" = "${shenv}" ] || {
+[ "$__ENV_SHENV" = "@out@" ] || {
 	echo "$0: environment does not match this version of hm-isolation: $ENV_DIR" >&2
 	exit 1
 }
 
-[ -n "''${__ENV_CONFIG:-}" ] || OPT_PATH=1
+[ -n "${__ENV_CONFIG:-}" ] || OPT_PATH=1
 
 if [ -n "$OPT_PRINT_PATH" ]; then
 	echo "$__ENV_PATH"
@@ -167,22 +169,21 @@ elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
 fi
 
-if [ -n "''${__ENV_PERSIST:-}" ]; then
+if [ -n "${__ENV_PERSIST:-}" ]; then
 	PERSIST="$HOME/$__ENV_PERSIST"
-	${if btrfs-progs != null then ''
-		if [ -n "''${__ENV_BTRFS:-}" ]; then
+	if [ -n "@btrfs_progs@" ]; then
+		if [ -n "${__ENV_BTRFS:-}" ]; then
 			mkdir -p "$(dirname "$PERSIST")"
-			[ ! -e "$PERSIST" ] && ${btrfs-progs}/bin/btrfs subvolume create "$PERSIST"
+			[ ! -e "$PERSIST" ] && @btrfs_progs@/bin/btrfs subvolume create "$PERSIST"
 		else
 			mkdir -p "$PERSIST"
 		fi
-	'' else ''
+	else
 		# No btrfs support
 		mkdir -p "$PERSIST"
-	''}
+	fi
 fi
 
 [ -n "$OPT_ACTIVATE" ] && export __ENV_ACTIVATE=1
 
-__ENV_UNSHARE=1 exec ${util-linux}/bin/unshare -Ucm --keep-caps -- "$0" "$@"
-''
+__ENV_UNSHARE=1 exec @util_linux@/bin/unshare -Ucm --keep-caps -- "$0" "$@"

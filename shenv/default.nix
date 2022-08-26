@@ -1,12 +1,26 @@
-{ btrfs-progs, config, util-linux, writeShellApplication, ... }:
+{ btrfs-progs, config, runtimeShell, shellcheck, stdenv, util-linux, ... }:
 let
   cfg = config.home.isolation;
-in writeShellApplication {
-  name = "shenv"; #TODO: change to pname and add version
+  version = "0.1.2";
+in stdenv.mkDerivation {
+  pname = "shenv";
+  inherit version;
+  src = ./.;
 
-  text = import ./shenv.nix {
-    inherit util-linux;
-    shenv = placeholder "out";
-    btrfs-progs = if cfg.btrfsSupport then btrfs-progs else null; 
-  };
+  inherit runtimeShell;
+  btrfs_progs = if cfg.btrfsSupport then btrfs-progs else null; 
+  util_linux = util-linux;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    substituteAll $src/shenv.sh $out/bin/shenv
+    chmod +x $out/bin/shenv
+  '';
+
+  checkPhase = ''
+    ${stdenv.shellDryRun} $out/bin/shenv
+    ${shellcheck}/bin/shellcheck $out/bin/shenv
+  '';
+
+  meta.mainProgram = "shenv";
 }
