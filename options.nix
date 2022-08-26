@@ -213,8 +213,19 @@ in {
         Setting this option allows you to define environments in their own module
         set, separate from the outer Home Manager configuration tree. Note that
         these module are imported as submodules of the environment. Thus, options
-        such as `static' and `packages' are exposed to it at the root of the module
-        option and configuration hierarchy.
+        such as <literal>static</literal> and <literal>packages</literal> are exposed
+        to it at the root of the module option and configuration hierarchy.
+      '';
+    };
+
+    modulesUnder = mkOption {
+      type = nullOr path;
+      default = null;
+
+      description = ''
+        If set, imports all files and directories under the path and defines one
+        environment module per node. The environment name is taken from the filename
+        after removing any <literal>.nix</literal> suffix. The base path must be a directory.
       '';
     };
   };
