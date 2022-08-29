@@ -2,7 +2,7 @@
 with lib; let
   cfg = config.home.isolation;
 in {
-  imports = [ ./options.nix ./static.nix ];
+  imports = [ ./files.nix ./options.nix ];
 
   home = mkIf cfg.enable {
     packages = [ (pkgs.callPackage ./shenv { inherit config; }) ];

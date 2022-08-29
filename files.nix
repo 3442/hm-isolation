@@ -1,10 +1,12 @@
 { config, lib, pkgs, ... }:
 with lib; let
   cfg = config.home.isolation;
-  statics = filterAttrs (_: opts: opts.static) cfg.environments;
 
-  common = {
-    ENVS = attrNames statics;
+  statics = filterAttrs (_: opts: opts.static) cfg.environments;
+  nonStatics = filterAttrs (_: opts: !opts.static) cfg.environments;
+
+  common = envs: {
+    ENVS = attrNames envs;
     SHENV = pkgs.callPackage ./shenv { inherit config; };
   };
 
@@ -22,9 +24,8 @@ with lib; let
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
   };
 
-  static = pkgs.runCommand
-    "static-shenvs"
-    (fold mergeAttrs common (mapAttrsToList envVars statics))
+  envFiles = name: envs: pkgs.runCommand name
+    (fold mergeAttrs (common envs) (mapAttrsToList envVars envs))
     ''
       for ENV in $ENVS; do
         mkdir -p $out/$ENV
@@ -53,7 +54,14 @@ with lib; let
     '';
 in {
   # This prevents infinite recursion between activationPackages and env files
-  xdg = mkIf (cfg.enable && !cfg.active && statics != {}) {
-    configFile."hm-isolation/static".source = static;
-  };
+  xdg.configFile = let
+    staticConf."hm-isolation/static".source = envFiles "static-shenvs" statics;
+    drvConf = mapAttrs' drv nonStatics;
+
+    drv = name: env: {
+      name = "hm-isolation/drv/${name}";
+      value.source = builtins.unsafeDiscardOutputDependency
+        (envFiles "shenv-${name}" { "${name}" = env; }).drvPath;
+    };
+  in mkIf (cfg.enable && !cfg.active) (drvConf // optionalAttrs (statics != {}) staticConf);
 }
