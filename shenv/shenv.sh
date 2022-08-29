@@ -61,6 +61,9 @@ elif [ -n "${__ENV_SHENV:-}" ]; then
 		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
 		__ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
 
+	__HM_SESS_VARS_SOURCED=""
+	source .nix-profile/etc/profile.d/hm-session-vars.sh || true
+
 	exec -- "$@"
 fi
 
