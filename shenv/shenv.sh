@@ -131,10 +131,13 @@ while true; do
 	esac
 done
 
-STATIC="${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation/static"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/hm-isolation"
+STATIC_DIR="$CONFIG_DIR/static"
+DRV_DIR="$CONFIG_DIR/drv"
 
 [ -n "$OPT_LIST" ] && {
-	[ -d "$STATIC" ] && find -- "$STATIC/" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+	[ -d "$STATIC_DIR" ] && find -- "$STATIC_DIR/" -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+	[ -d "$DRV_DIR" ] && find -- "$DRV_DIR/" -mindepth 1 -maxdepth 1 -type l -printf '%f\n'
 	exit
 }
 
@@ -143,7 +146,12 @@ ENV="$1"
 shift
 [ $# -eq 0 ] && set -- "$SHELL"
 
-ENV_DIR="$STATIC/$ENV"
+ENV_DIR="$STATIC_DIR/$ENV"
+
+if [ ! -e "$ENV_DIR" ]; then
+	DRV="$DRV_DIR/$ENV"
+	[ -L "$DRV" ] && ENV_DIR="$(nix-store --realise -- "$(readlink -f "$DRV")")/$ENV"
+fi
 
 [ -f "$ENV_DIR/env" ] || {
 	echo "$0: environment '$ENV' not found"

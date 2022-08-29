@@ -1,7 +1,7 @@
 { btrfs-progs, config, runtimeShell, shellcheck, stdenv, util-linux, ... }:
 let
   cfg = config.home.isolation;
-  version = "0.1.2";
+  version = "0.1.3";
 in stdenv.mkDerivation {
   pname = "shenv";
   inherit version;
