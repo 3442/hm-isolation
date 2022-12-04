@@ -185,6 +185,33 @@ in {
                 home = {
                   inherit (config) packages;
 
+                  extraBuilderCommands = ''
+                    substituteInPlace $out/activate \
+                      --replace 'declare -gr ' 'declare -g '
+                  '';
+
+                  activation.isolateProfile = mkOverride 0
+                    (lib.hm.dag.entryBefore [ "checkLinkTargets" "checkFilesChanged" ] ''
+                      declare -g isolationSelfPath="${config.hm.xdg.configHome}/hm-isolation/self"
+                      declare -g nixProfilePath="$isolationSelfPath/profile"
+                      declare -g genProfilePath="$isolationSelfPath/home-manager"
+                      declare -g newGenGcPath="$genProfilePath"
+                      declare -g oldGenPath="$(readlink -f "$genProfilePath")"
+
+                      declare -g oldGenNum=0
+                      declare -g newGenNum=0
+                    '');
+
+                  activation.installPackages = mkOverride 0
+                    (lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                      $DRY_RUN_CMD ln -Tsf -- $newGenPath/home-path "$HOME/.nix-profile"
+                    '');
+
+                  activation.cleanIsolationSelf = mkOverride 0
+                    (lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+                      $DRY_RUN_CMD mkdir -p "$isolationSelfPath"
+                    '');
+
                   isolation = {
                     active = mkOverride 0 true;
                     environments = mkOerride 0 {};

@@ -26,21 +26,9 @@ if [ -n "${__ENV_UNSHARE:-}" ]; then
 
 	cd
 
-	PROFILES_SOURCE="$__ENV_CONFIG/self/profiles"
-	GCROOTS_SOURCE="$__ENV_CONFIG/self/gcroots"
-	PROFILES_TARGET="/nix/var/nix/profiles/per-user/$USER"
-	GCROOTS_TARGET="/nix/var/nix/gcroots/per-user/$USER"
-	mkdir -p -- "$PROFILES_SOURCE" "$GCROOTS_SOURCE"
-
-	if [ ! -d "$PROFILES_SOURCE/profile" ]; then
-		ln -sf -- "$(readlink -f "$PROFILES_TARGET/profile")" "$PROFILES_SOURCE/profile"
-		export __ENV_ACTIVATE=1
-	elif [ ! "$(readlink -f "$PROFILES_SOURCE/home-manager")" = "$__ENV_GENERATION" ]; then
+	if [ ! "$(readlink -f "$__ENV_CONFIG/self/home-manager")" = "$(readlink -f "$__ENV_GENERATION")" ]; then
 		export __ENV_ACTIVATE=1
 	fi
-
-	$MOUNT --rbind -- "$PROFILES_SOURCE" "$PROFILES_TARGET"
-	$MOUNT --rbind -- "$GCROOTS_SOURCE" "$GCROOTS_TARGET"
 
 	if [ -n "$__ENV_VIEW" ]; then
 		mkdir -p "./$__ENV_VIEW"
