@@ -67,6 +67,15 @@ in {
           '';
         };
 
+        patchVars = mkOption {
+          type = bool;
+          default = true;
+
+          description = ''
+            Default for <xref linkend="opt-home.isolation.environments._name_.persist.patchVars"/>.
+          '';
+        };
+
         btrfs = mkOption {
           type = bool;
           default = false;
@@ -162,6 +171,18 @@ in {
                     Setting this option to a non-null value enables environment
                     persistence. The path is relative to the real home directory
                     and is created upon environment entry if it doesn't exist.
+                  '';
+                };
+
+                patchVars = mkOption {
+                  type = bool;
+                  default = cfg.defaults.persist.patchVars;
+                  defaultText = "config.home.isolation.defaults.persist.patchVars";
+
+                  description = ''
+                    Attempt to fix references to $HOME in environment variables.
+                    This is a simple search-and-replace operation that may result
+                    in unexpected results in several situations.
                   '';
                 };
 

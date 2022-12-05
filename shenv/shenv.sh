@@ -3,7 +3,16 @@ set -o errexit -o nounset -o pipefail
 
 execTarget() {
 	if [ -n "${__ENV_PERSIST:-}" ]; then
-		export HOME="$HOME/$__ENV_PERSIST"
+		local oldHome="$HOME"
+		local newHome="$HOME/$__ENV_PERSIST"
+
+		if [ -n "${__ENV_PATCHVARS:-}" ]; then
+			while IFS='=' read -rd '' name value; do
+				export "$name"="$(echo -n "$value" | sed "s@$oldHome@$newHome@g")"
+			done < <(env -0)
+		else
+			HOME="$newHome"
+		fi
 	fi
 
 	if [ -n "${__ENV_GENERATION:-}" ]; then
@@ -19,7 +28,7 @@ execTarget() {
 
 	unset \
 		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
-		__ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
+		__ENV_PATCHVARS __ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
 
 	if [ -n "${__ENV_GENERATION:-}" ]; then
 		__HM_SESS_VARS_SOURCED=""

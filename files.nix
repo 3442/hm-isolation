@@ -12,6 +12,7 @@ with lib; let
 
   envVars = name: env: let
     withGen = env.namespaced || env.persist.enable;
+    relocateHome = !env.namespaced && env.persist.enable;
     maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
   in {
     "ENV_${name}_PATH" = makeBinPath env.packages;
@@ -20,6 +21,7 @@ with lib; let
     "ENV_${name}_GENERATION" = optionalString withGen "${env.hm.home.activationPackage}";
 
     "ENV_${name}_PERSIST" = optionalString env.persist.enable env.persist.under;
+    "ENV_${name}_PATCHVARS" = relocateHome && env.persist.patchVars;
     "ENV_${name}_BTRFS" = env.persist.enable && env.persist.btrfs;
 
     "ENV_${name}_VIEW" = optionalString env.namespaced (maybeNull env.bindHome);
@@ -36,6 +38,7 @@ with lib; let
         CONFIG="ENV_''${ENV}_CONFIG"
         GENERATION="ENV_''${ENV}_GENERATION"
         PATH_="ENV_''${ENV}_PATH"
+        PATCHVARS="ENV_''${ENV}_PATCHVARS"
         PERSIST="ENV_''${ENV}_PERSIST"
         VIEW="ENV_''${ENV}_VIEW"
 
@@ -49,9 +52,8 @@ with lib; let
 
         if [ -n "''${!PERSIST}" ]; then
           echo "__ENV_PERSIST=''${!PERSIST}" >>env
-          if [ -n "''${!BTRFS}" ]; then
-            echo "__ENV_BTRFS=1" >>env
-          fi
+          echo "__ENV_PATCHVARS=''${!PATCHVARS}" >>env
+          echo "__ENV_BTRFS=''${!BTRFS}" >>env
         fi
 
         if [ -n "''${!VIEW}" ]; then
