@@ -144,6 +144,15 @@ in {
 
             type = submodule {
               options = {
+                enable = mkOption {
+                  type = bool;
+                  defaultText = "namespaced";
+
+                  description = ''
+                    Whether to enable home environment persistence.
+                  '';
+                };
+
                 under = mkOption {
                   type = nullOr str;
                   defaultText = "\"\${config.home.isolation.defaults.persist.base}/\${name}\"";
@@ -208,7 +217,7 @@ in {
                     '');
 
                   activation.cleanIsolationSelf = mkOverride 0
-                    (lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+                    (lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ] ''
                       $DRY_RUN_CMD mkdir -p "$isolationSelfPath"
                     '');
 
@@ -224,11 +233,14 @@ in {
           };
         };
 
-        config.persist.under = let
-          under = if cfg.defaults.persist.base != null
-            then "${cfg.defaults.persist.base}/${name}"
-            else null;
-        in mkOptionDefault under;
+        config.persist = {
+          enable = mkOptionDefault (config.namespaced && cfg.defaults.persist.base != null);
+
+          under = mkOptionDefault
+            (if config.persist.enable && cfg.defaults.persist.base != null
+              then "${cfg.defaults.persist.base}/${name}"
+              else null);
+        };
       }));
     };
 
@@ -257,13 +269,41 @@ in {
     };
   };
 
-  config.assertions = with lib; [
-    {
-      assertion =
-        any (env: env.persist.btrfs) (attrValues cfg.environments) -> cfg.btrfsSupport;
+  config = with lib; let
+    errors = [
+      (env: {
+        assertion = env.persist.enable -> env.persist.under != null;
 
-      message =
-        "Isolated environments with btrfs persistence require home.isolation.btrfsSupport";
-    }
-  ];
+        message =
+          "persistence is enabled but persist.under is not set";
+      })
+
+      (env: {
+        assertion = env.persist.btrfs -> cfg.btrfsSupport;
+
+        message =
+          "btrfs persistence requires home.isolation.btrfsSupport";
+      })
+    ];
+
+    warns = [
+      (env: {
+        assertion = ! env.persist.enable -> env.persist.under == null;
+
+        message =
+          "not persistent, but persist.under is set";
+      })
+    ];
+
+    named = map (c: name: env: (c: {
+      inherit (c) assertion;
+      message = "environment '${name}': ${c.message}";
+    }) (c env));
+
+    checks = checks: flatten
+      (mapAttrsToList (name: env: map (a: a name env) (named checks)) cfg.environments);
+  in mkIf cfg.enable {
+    warnings = map (w: w.message) (filter (w: ! w.assertion) (checks warns));
+    assertions = checks errors;
+  };
 }

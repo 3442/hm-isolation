@@ -18,10 +18,11 @@ with lib; let
 
     "ENV_${name}_PATH" = makeBinPath env.packages;
   } // optionalAttrs env.namespaced {
-    "ENV_${name}_BTRFS" = env.persist.btrfs;
     "ENV_${name}_GENERATION" = env.hm.home.activationPackage;
-    "ENV_${name}_PERSIST" = maybeNull env.persist.under;
     "ENV_${name}_VIEW" = maybeNull env.bindHome;
+  } // optionalAttrs env.persist.enable {
+    "ENV_${name}_BTRFS" = env.persist.btrfs;
+    "ENV_${name}_PERSIST" = env.persist.under;
   };
 
   envFiles = name: envs: pkgs.runCommand name
