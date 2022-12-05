@@ -1,9 +1,22 @@
 #!@runtimeShell@
 set -o errexit -o nounset -o pipefail
 
+declare -g oldHome="$HOME"
+
+xlate() {
+	if [ -n "${__ENV_VIEW:-}" ]; then
+		# TODO: this won't work in a lot of corner cases
+		local outerHome="$oldHome/${__ENV_VIEW}"
+		echo -n "$1" | sed "s@$oldHome\(\$\|[^a-zA-Z0-9_.-]\)@$outerHome\1@g"
+		return 0
+	fi
+
+	echo "$1"
+	return 1
+}
+
 execTarget() {
 	if [ -n "${__ENV_PERSIST:-}" ]; then
-		local oldHome="$HOME"
 		local newHome="$HOME/$__ENV_PERSIST"
 
 		if [ -n "${__ENV_PATCHVARS:-}" ]; then
@@ -48,6 +61,7 @@ if [ -n "${__ENV_VIEW+x}" ]; then
 	MOUNT=@util_linux@/bin/mount
 	UMOUNT=@util_linux@/bin/umount
 
+	declare oldCwd="$PWD"
 	cd
 
 	if [ -n "$__ENV_VIEW" ]; then
@@ -70,6 +84,12 @@ if [ -n "${__ENV_VIEW+x}" ]; then
 		$MOUNT --move -- "$PIVOT" "./$__ENV_VIEW"
 		[ -d /run/mount ] && $UMOUNT /run/mount
 		rm -df -- "$PIVOT"
+	fi
+
+	if [ -n "$__ENV_VIEW" ]; then
+		if declare newCwd="$(xlate "$oldCwd")"; then
+			cd "$newCwd"
+		fi
 	fi
 
 	unset __ENV_VIEW __ENV_PERSIST
