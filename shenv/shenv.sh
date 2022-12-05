@@ -1,7 +1,35 @@
 #!@runtimeShell@
 set -o errexit -o nounset -o pipefail
 
-if [ -n "${__ENV_UNSHARE:-}" ]; then
+execTarget() {
+	if [ -n "${__ENV_PERSIST:-}" ]; then
+		export HOME="$HOME/$__ENV_PERSIST"
+	fi
+
+	if [ -n "${__ENV_GENERATION:-}" ]; then
+		oldGenPath="$__ENV_CONFIG/self/home-manager"
+		[ -e "$oldGenPath" ] && oldGen="$(readlink -f "$oldGenPath")"
+		newGen="$(readlink -f "$__ENV_GENERATION")"
+
+		# Note that __ENV_ACTIVATE can also be set in other ways
+		[ ! "${oldGen:-}" = "$newGen" ] && __ENV_ACTIVATE=1
+	fi
+
+	[ -n "${__ENV_ACTIVATE:-}" ] && { "$__ENV_GENERATION/activate" || true; }
+
+	unset \
+		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
+		__ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
+
+	if [ -n "${__ENV_GENERATION:-}" ]; then
+		__HM_SESS_VARS_SOURCED=""
+		source "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" || true
+	fi
+
+	exec -- "$@"
+}
+
+if [ -n "${__ENV_VIEW+x}" ]; then
 	# https://github.com/NixOS/nixpkgs/issues/42117
 	PATH=":$PATH:"
 	PATH="${PATH//:\/run\/wrappers\/bin:/:}"
@@ -12,23 +40,20 @@ if [ -n "${__ENV_UNSHARE:-}" ]; then
 	UMOUNT=@util_linux@/bin/umount
 
 	cd
+
 	if [ -n "$__ENV_VIEW" ]; then
 		PIVOT="$(mktemp -d)"
 		trap 'rm -df -- "$PIVOT"' EXIT
 		$MOUNT --rbind -- . "$PIVOT"
 	fi
 
-	if [ -n "$__ENV_PERSIST" ]; then
+	if [ -n "${__ENV_PERSIST:-}" ]; then
 		$MOUNT --rbind -- "$__ENV_PERSIST" .
 	else
 		$MOUNT -t tmpfs tmpfs .
 	fi
 
 	cd
-
-	if [ ! "$(readlink -f "$__ENV_CONFIG/self/home-manager")" = "$(readlink -f "$__ENV_GENERATION")" ]; then
-		export __ENV_ACTIVATE=1
-	fi
 
 	if [ -n "$__ENV_VIEW" ]; then
 		mkdir -p "./$__ENV_VIEW"
@@ -38,21 +63,12 @@ if [ -n "${__ENV_UNSHARE:-}" ]; then
 		rm -df -- "$PIVOT"
 	fi
 
-	unset __ENV_UNSHARE
+	unset __ENV_VIEW __ENV_PERSIST
 
-	# We cannot use $0 here since that may reference $HOME
+	# We should not use $0 here since that might reference $HOME
 	exec @util_linux@/bin/setpriv --inh-caps=-all -- "@out@/bin/shenv" "$@"
 elif [ -n "${__ENV_SHENV:-}" ]; then
-	[ -n "${__ENV_ACTIVATE:-}" ] && { "$__ENV_GENERATION/activate" || true; }
-
-	unset \
-		__ENV_ACTIVATE __ENV_BTRFS __ENV_CONFIG__ENV_GENERATION \
-		__ENV_PATH __ENV_PERSIST __ENV_SHENV __ENV_VIEW
-
-	__HM_SESS_VARS_SOURCED=""
-	source .nix-profile/etc/profile.d/hm-session-vars.sh || true
-
-	exec -- "$@"
+	execTarget "$@"
 fi
 
 eval set -- "$(@util_linux@/bin/getopt \
@@ -144,22 +160,22 @@ if [ ! -e "$ENV_DIR" ]; then
 	[ -L "$DRV" ] && ENV_DIR="$(nix-store --realise -- "$(readlink -f "$DRV")")/$ENV"
 fi
 
-[ -f "$ENV_DIR/env" ] || {
-	echo "$0: environment '$ENV' not found"
+if [ ! -f "$ENV_DIR/env" ]; then
+	echo "$0: environment '$ENV' not found" >&2
 	exit 1
-}
+fi
 
 set -a
 # shellcheck disable=SC1091
 . "$ENV_DIR/env"
 set +a
 
-[ "$__ENV_SHENV" = "@out@" ] || {
+if [ ! "$__ENV_SHENV" = "@out@" ]; then
 	echo "$0: environment does not match this version of hm-isolation: $ENV_DIR" >&2
 	exit 1
-}
+fi
 
-[ -n "${__ENV_CONFIG:-}" ] || OPT_PATH=1
+[ -n "${__ENV_GENERATION:-}" ] || OPT_PATH=1
 
 if [ -n "$OPT_PRINT_PATH" ]; then
 	echo "$__ENV_PATH"
@@ -185,4 +201,8 @@ fi
 
 [ -n "$OPT_ACTIVATE" ] && export __ENV_ACTIVATE=1
 
-__ENV_UNSHARE=1 exec @util_linux@/bin/unshare -Ucm --keep-caps -- "$0" "$@"
+if [ -n "${__ENV_VIEW+x}" ]; then
+	exec @util_linux@/bin/unshare -Ucm --keep-caps -- "$0" "$@"
+else
+	execTarget "$@"
+fi

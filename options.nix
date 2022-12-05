@@ -1,6 +1,6 @@
 { config, lib, extendModules, ... }:
 with lib.types; let
-  inherit (lib) mkEnableOption mkOption mkOptionDefault mkOverride;
+  inherit (lib) mkEnableOption mkForce mkOption mkOptionDefault mkOverride optionalString;
   outerConfig = config;
   cfg = config.home.isolation;
 in {
@@ -199,7 +199,7 @@ in {
                       --replace 'declare -gr ' 'declare -g '
                   '';
 
-                  activation.isolateProfile = mkOverride 0
+                  activation.isolateProfile =
                     (lib.hm.dag.entryBefore [ "checkLinkTargets" "checkFilesChanged" ] ''
                       declare -g isolationSelfPath="${config.hm.xdg.configHome}/hm-isolation/self"
                       declare -g nixProfilePath="$isolationSelfPath/profile"
@@ -211,7 +211,7 @@ in {
                       declare -g newGenNum=0
                     '');
 
-                  activation.installPackages = mkOverride 0
+                  activation.installPackages = mkForce
                     (lib.hm.dag.entryAfter [ "writeBoundary" ] ''
                       $DRY_RUN_CMD ln -Tsf -- $newGenPath/home-path "$HOME/.nix-profile"
                     '');
@@ -221,15 +221,21 @@ in {
                       $DRY_RUN_CMD mkdir -p "$isolationSelfPath"
                     '');
 
+                  homeDirectory = let
+                    path = optionalString
+                      (config.persist.enable && !config.namespaced)
+                      "/${config.persist.under}";
+                  in mkForce "${outerConfig.home.homeDirectory}${path}";
+
                   isolation = {
                     active = mkOverride 0 true;
-                    environments = mkOerride 0 {};
+                    environments = mkOverride 0 {};
                   };
                 };
               } ];
             }).type;
 
-            apply = hm: if config.namespaced then hm else outerConfig;
+            apply = hm: if config.namespaced || config.persist.enable then hm else outerConfig;
           };
         };
 
@@ -288,7 +294,7 @@ in {
 
     warns = [
       (env: {
-        assertion = ! env.persist.enable -> env.persist.under == null;
+        assertion = !env.persist.enable -> env.persist.under == null;
 
         message =
           "not persistent, but persist.under is set";
@@ -303,7 +309,7 @@ in {
     checks = checks: flatten
       (mapAttrsToList (name: env: map (a: a name env) (named checks)) cfg.environments);
   in mkIf cfg.enable {
-    warnings = map (w: w.message) (filter (w: ! w.assertion) (checks warns));
+    warnings = map (w: w.message) (filter (w: !w.assertion) (checks warns));
     assertions = checks errors;
   };
 }

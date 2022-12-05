@@ -11,18 +11,18 @@ with lib; let
   };
 
   envVars = name: env: let
+    withGen = env.namespaced || env.persist.enable;
     maybeNull = arg: escapeShellArg (optionalString (arg != null) arg);
   in {
-    "ENV_${name}_CONFIG" =
-      optionalString env.namespaced "${env.hm.xdg.configHome}/hm-isolation";
-
     "ENV_${name}_PATH" = makeBinPath env.packages;
-  } // optionalAttrs env.namespaced {
-    "ENV_${name}_GENERATION" = env.hm.home.activationPackage;
-    "ENV_${name}_VIEW" = maybeNull env.bindHome;
-  } // optionalAttrs env.persist.enable {
-    "ENV_${name}_BTRFS" = env.persist.btrfs;
-    "ENV_${name}_PERSIST" = env.persist.under;
+
+    "ENV_${name}_CONFIG" = optionalString withGen "${env.hm.xdg.configHome}/hm-isolation";
+    "ENV_${name}_GENERATION" = optionalString withGen "${env.hm.home.activationPackage}";
+
+    "ENV_${name}_PERSIST" = optionalString env.persist.enable env.persist.under;
+    "ENV_${name}_BTRFS" = env.persist.enable && env.persist.btrfs;
+
+    "ENV_${name}_VIEW" = optionalString env.namespaced (maybeNull env.bindHome);
   };
 
   envFiles = name: envs: pkgs.runCommand name
@@ -41,15 +41,21 @@ with lib; let
 
         echo "__ENV_SHENV=$SHENV" >env
         echo "__ENV_PATH=''${!PATH_}" >>env
-        [ -n "''${!CONFIG}" ] || continue
 
-        echo "__ENV_CONFIG=''${!CONFIG}" >>env
-        echo "__ENV_GENERATION=''${!GENERATION}" >>env
-        echo "__ENV_PERSIST=''${!PERSIST}" >>env
-        echo "__ENV_VIEW=''${!VIEW}" >>env
+        if [ -n "''${!CONFIG}" ]; then
+          echo "__ENV_CONFIG=''${!CONFIG}" >>env
+          echo "__ENV_GENERATION=''${!GENERATION}" >>env
+        fi
 
-        if [ -n "''${!BTRFS}" ]; then
-          echo "__ENV_BTRFS=1" >>env
+        if [ -n "''${!PERSIST}" ]; then
+          echo "__ENV_PERSIST=''${!PERSIST}" >>env
+          if [ -n "''${!BTRFS}" ]; then
+            echo "__ENV_BTRFS=1" >>env
+          fi
+        fi
+
+        if [ -n "''${!VIEW}" ]; then
+          echo "__ENV_VIEW=''${!VIEW}" >>env
         fi
       done
     '';
