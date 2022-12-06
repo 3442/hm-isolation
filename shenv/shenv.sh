@@ -103,7 +103,7 @@ fi
 eval set -- "$(@util_linux@/bin/getopt \
 	-n shenv \
 	-l help,version,activate,list,path,print-path \
-	-o +hvalpP \
+	-o +hvalpPx \
 	-- "$@")"
 
 usage() {
@@ -115,6 +115,7 @@ usage() {
 	  -l, --list        List available environments
 	  -p, --path        Only add the environment's path to \$PATH
 	  -P, --print-path  Print the environment's path and exit
+	  -x, --xlate       Translate command-line references to \$HOME
 	EOF
 }
 
@@ -122,6 +123,7 @@ OPT_ACTIVATE=""
 OPT_LIST=""
 OPT_PATH=""
 OPT_PRINT_PATH=""
+OPT_XLATE=""
 
 while true; do
 	case "$1" in
@@ -147,6 +149,11 @@ while true; do
 
 		-P|--print-path)
 			OPT_PRINT_PATH=1
+			shift
+			;;
+
+		-x|--xlate)
+			OPT_XLATE=1
 			shift
 			;;
 
@@ -211,6 +218,15 @@ if [ -n "$OPT_PRINT_PATH" ]; then
 	exit
 elif [ -n "$OPT_PATH" ]; then
 	PATH="$__ENV_PATH:$PATH" exec -- "$@"
+fi
+
+if [ -n "$OPT_XLATE" ]; then
+	declare -a argv=("$@")
+	for i in $(seq 0 $((${#argv[@]} - 1))); do
+		argv[$i]="$(xlate "${argv[$i]}" || true)"
+	done
+
+	set -- "${argv[@]}"
 fi
 
 if [ -n "${__ENV_PERSIST:-}" ]; then
