@@ -11,8 +11,13 @@ in {
       active = mkForce false;
 
       environments = let
+        filterArgs = name: value:
+          if name == "args"
+          then filterAttrs (name: _: name != "name") value
+          else value;
+
         rootModule = module: { ... }: {
-          inherit (config) _module;
+          _module = mapAttrs filterArgs config._module;
           imports = [ module ];
         };
       in mapAttrs (_: rootModule) cfg.modules;

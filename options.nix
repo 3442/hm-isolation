@@ -210,6 +210,8 @@ in {
 
             type = (extendModules {
               modules = [ {
+                _module.args.name = mkForce outerConfig.home.username;
+
                 specialization = mkOverride 0 {};
 
                 home = {
